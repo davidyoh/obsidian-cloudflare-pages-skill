@@ -126,8 +126,12 @@ async function wizard() {
   const inferredDomain = (defaults?.cloudflare?.productionDomain || defaults?.site?.baseUrl || 'YOURDOMAIN.COM')
     .replace(/^https?:\/\//, '')
     .replace(/\/.*$/, '') || 'YOURDOMAIN.COM';
+  const rootSourceFolder = await ask(
+    'Folder to promote to site root index',
+    defaults?.site?.branding?.rootSourceFolder || (defaults?.source?.includeFolders?.[0] || 'Clippings')
+  );
   const clippingsIndexLabel = await ask(
-    'Clippings index label',
+    'Clippings/source index label',
     defaults?.site?.branding?.clippingsIndexLabel || `Clippings | ${inferredDomain}`
   );
   const rootIndexLabel = await ask(
@@ -174,6 +178,7 @@ async function wizard() {
       theme,
       showBacklinks: /^y(es)?$/i.test(showBacklinks),
       branding: {
+        rootSourceFolder,
         clippingsIndexLabel,
         rootIndexLabel,
         sidebarTitleHtml
@@ -299,16 +304,32 @@ function setupProject() {
   }
 
   console.log(`Initializing Quartz project in: ${workspaceDir}`);
-  if (!fs.existsSync(path.join(workspaceDir, 'package.json'))) {
-    sh('npm init -y', workspaceDir);
+
+  // Preferred path (older Quartz bootstrap flow).
+  let bootstrapOk = false;
+  try {
+    if (!fs.existsSync(path.join(workspaceDir, 'package.json'))) {
+      sh('npm init -y', workspaceDir);
+    }
+    sh('npx quartz create', workspaceDir);
+    bootstrapOk = fs.existsSync(path.join(workspaceDir, 'quartz.config.ts'));
+  } catch {
+    bootstrapOk = false;
   }
 
-  // Quartz create may ask a few prompts depending on installed version.
-  // Run interactively so user can pick defaults if prompted.
-  sh('npx quartz create', workspaceDir);
+  // Fallback path: clone Quartz directly if bootstrap command is unavailable.
+  if (!bootstrapOk) {
+    console.log('Falling back to git clone bootstrap for Quartz...');
+    if (fs.readdirSync(workspaceDir).length > 0) {
+      sh(`rm -rf "${workspaceDir}"/*`);
+    }
+    sh(`git clone https://github.com/jackyzha0/quartz.git "${workspaceDir}"`);
+    sh('npm i', workspaceDir);
+    bootstrapOk = fs.existsSync(path.join(workspaceDir, 'quartz.config.ts'));
+  }
 
-  if (!fs.existsSync(path.join(workspaceDir, 'quartz.config.ts'))) {
-    throw new Error('Quartz initialization did not create quartz.config.ts');
+  if (!bootstrapOk) {
+    throw new Error('Quartz initialization failed: quartz.config.ts not found');
   }
 
   console.log('Quartz project setup complete ✅');
@@ -379,22 +400,22 @@ function build() {
   const workspaceDir = expandHome(cfg.publish.workspaceDir);
   sh('npx quartz build', workspaceDir);
 
-  // Convenience: promote Clippings index to site root index when present.
   const publicDir = path.join(workspaceDir, 'public');
-  const clippingsIndex = path.join(publicDir, 'Clippings', 'index.html');
+  const rootSourceFolder = cfg?.site?.branding?.rootSourceFolder || 'Clippings';
+  const sourceIndex = path.join(publicDir, rootSourceFolder, 'index.html');
   const rootIndex = path.join(publicDir, 'index.html');
-  if (fs.existsSync(clippingsIndex)) {
-    fs.copyFileSync(clippingsIndex, rootIndex);
-    console.log('Promoted /Clippings/index.html -> /index.html ✅');
+  if (fs.existsSync(sourceIndex)) {
+    fs.copyFileSync(sourceIndex, rootIndex);
+    console.log(`Promoted /${rootSourceFolder}/index.html -> /index.html ✅`);
   }
 
   // Config-driven branding.
   const domain = inferDomain(cfg);
-  const clippingsLabel = cfg?.site?.branding?.clippingsIndexLabel || `Clippings | ${domain}`;
+  const clippingsLabel = cfg?.site?.branding?.clippingsIndexLabel || `${rootSourceFolder} | ${domain}`;
   const rootLabel = cfg?.site?.branding?.rootIndexLabel || `Vault | ${domain}`;
   const sidebarTitleHtml = cfg?.site?.branding?.sidebarTitleHtml || `Obsidian Vault<br/>${domain}`;
 
-  const clippingsBranded = replaceInFile(clippingsIndex, [
+  const clippingsBranded = replaceInFile(sourceIndex, [
     ['Quartz 4', clippingsLabel],
     ['<title>Clippings', `<title>${clippingsLabel}`]
   ]);
@@ -402,7 +423,7 @@ function build() {
     ['Quartz 4', rootLabel],
     ['<title>Clippings', `<title>${rootLabel}`]
   ]);
-  if (clippingsBranded) console.log(`Branded /Clippings/index.html as "${clippingsLabel}" ✅`);
+  if (clippingsBranded) console.log(`Branded /${rootSourceFolder}/index.html as "${clippingsLabel}" ✅`);
   if (rootBranded) console.log(`Branded /index.html as "${rootLabel}" ✅`);
 
   brandSidebarTitle(publicDir, sidebarTitleHtml);

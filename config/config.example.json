@@ -16,6 +16,7 @@
     "theme": "minimal",
     "showBacklinks": true,
     "branding": {
+      "rootSourceFolder": "Clippings",
       "clippingsIndexLabel": "Clippings | YOURDOMAIN.COM",
       "rootIndexLabel": "Vault | YOURDOMAIN.COM",
       "sidebarTitleHtml": "Obsidian Vault<br/>YOURDOMAIN.COM"
