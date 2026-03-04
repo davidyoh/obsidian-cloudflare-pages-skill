@@ -1,8 +1,8 @@
-# Obsidian → Cloudflare Pages (YOURDOMAIN.COM)
+# OpenClaw Skill: Obsidian/Markdown → Cloudflare Pages (YOURDOMAIN.COM)
 
 ## Overview
 
-This skill automates publishing selected Obsidian notes to a static website on Cloudflare Pages.
+This OpenClaw Skill automates publishing selected Obsidian notes (or any Markdown folder) to a static website on Cloudflare Pages.
 
 It includes:
 - Interactive onboarding wizard
