@@ -1,6 +1,6 @@
 # OpenClaw Skill: Obsidian/Markdown → Cloudflare Pages (YOURDOMAIN.COM)
 
-![OpenClaw Skill banner](assets/github-banner.svg)
+![OpenClaw Skill banner](assets/github-banner-v2.svg)
 
 ## Overview
 

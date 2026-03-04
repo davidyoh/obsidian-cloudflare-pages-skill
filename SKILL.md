@@ -4,10 +4,16 @@ description: Publish selected Obsidian markdown from a vault to a static site an
 homepage: https://pages.cloudflare.com/
 ---
 
-# Obsidian → Cloudflare Pages
+# OpenClaw Skill: Obsidian/Markdown → Cloudflare Pages
+
+This is an **OpenClaw Skill** for publishing Markdown to Cloudflare Pages.
+
+- Works with Obsidian vault folders **or any Markdown folder**
+- Originally built for reading Obsidian Web Clipper output:
+  - https://obsidian.md/clipper
 
 Automates a safe publishing flow:
-1. Select notes from your Obsidian vault
+1. Select notes from your source folder
 2. Sync to a publish workspace
 3. Build static HTML with Quartz
 4. Deploy to Cloudflare Pages
@@ -85,3 +91,33 @@ Wizard now asks for:
 - Branding labels (clippings index, root index, sidebar title HTML)
 - Token/account env var names (defaults above)
 - Optional basic-auth protection (username/password)
+
+## OpenClaw usage tips
+
+Example prompts:
+- “Set up obsidian-cloudflare-pages wizard for my markdown folder.”
+- “Run doctor and tell me what dependency is missing.”
+- “Sync, build, and deploy to Cloudflare Pages.”
+- “Enable basic auth and redeploy.”
+
+Best practices:
+- Keep secrets in `.env` (never in chat logs)
+- Commit `config.example.json`, not personal `config.json`
+- Use a scoped Cloudflare token (Pages edit, DNS edit only if needed)
+- Start on a test subdomain before production
+
+## Standalone usage (outside OpenClaw)
+
+This works as a plain Node CLI too:
+
+```bash
+node bin/publishmd-cf.js init
+node bin/publishmd-cf.js wizard
+cp .env.example .env
+# fill .env values
+node bin/publishmd-cf.js run
+```
+
+## Security note
+
+Basic auth in this skill is intentionally simple and optional. Do not publish highly sensitive content unless you fully understand your security model and hardening choices.
