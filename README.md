@@ -173,8 +173,8 @@ node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js run
     "accountIdEnv": "CLOUDFLARE_ACCOUNT_ID",
     "basicAuth": {
       "enabled": true,
-      "username": "vault",
-      "password": "vault"
+      "username": "YOURUSERID",
+      "password": "YOURPASSWORD"
     }
   }
 }
