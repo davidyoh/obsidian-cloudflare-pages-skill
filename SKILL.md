@@ -88,7 +88,7 @@ The CLI auto-loads `skills/obsidian-cloudflare-pages/.env` (without overriding e
 
 Wizard now asks for:
 - Full production domain (e.g. `YOURDOMAIN.COM`)
-- Branding labels (clippings index, root index, sidebar title HTML)
+- Branding settings (root source folder, source index label, root index label, sidebar title HTML)
 - Token/account env var names (defaults above)
 - Optional basic-auth protection (username/password)
 
