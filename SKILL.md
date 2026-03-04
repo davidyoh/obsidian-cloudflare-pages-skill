@@ -92,6 +92,11 @@ Wizard now asks for:
 - Token/account env var names (defaults above)
 - Optional basic-auth protection (username/password)
 
+
+## Notes
+
+- ⚠️ `setup-project` fallback behavior: if the direct Quartz bootstrap command fails, the fallback path may clear files in the configured workspace directory before cloning Quartz. Use a dedicated workspace path for this skill.
+
 ## OpenClaw usage tips
 
 Example prompts:
@@ -122,5 +127,3 @@ node bin/publishmd-cf.js run
 
 Basic auth in this skill is intentionally simple and optional. Do not publish highly sensitive content unless you fully understand your security model and hardening choices.
 
----
-Updated: 2026-03-04
