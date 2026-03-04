@@ -121,3 +121,6 @@ node bin/publishmd-cf.js run
 ## Security note
 
 Basic auth in this skill is intentionally simple and optional. Do not publish highly sensitive content unless you fully understand your security model and hardening choices.
+
+---
+Updated: 2026-03-04
