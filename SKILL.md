@@ -36,6 +36,8 @@ Automates a safe publishing flow:
   - Deploys to Cloudflare Pages with wrangler
 - `node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js run`
   - sync → build → deploy
+- `node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js run --dry-run`
+  - previews actions without mutating files or deploying
 
 ## Config
 
@@ -82,6 +84,7 @@ source ~/.zshrc
 ```bash
 cp skills/obsidian-cloudflare-pages/.env.example skills/obsidian-cloudflare-pages/.env
 # then edit .env
+# optional auth envs: BASIC_AUTH_USERNAME / BASIC_AUTH_PASSWORD
 ```
 
 The CLI auto-loads `skills/obsidian-cloudflare-pages/.env` (without overriding existing shell env vars).
@@ -96,6 +99,8 @@ Wizard now asks for:
 ## Notes
 
 - ⚠️ `setup-project` fallback behavior: if the direct Quartz bootstrap command fails, the fallback path may clear files in the configured workspace directory before cloning Quartz. Use a dedicated workspace path for this skill.
+- Fallback cleanup is guarded and requires `ALLOW_DESTRUCTIVE=1` when workspace is non-empty.
+- Dry-run output redacts sensitive values such as API tokens.
 
 ## OpenClaw usage tips
 
