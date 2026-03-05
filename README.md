@@ -10,7 +10,8 @@ It includes:
 - Interactive onboarding wizard
 - Vault folder sync
 - Quartz build + deploy
-- Optional Basic Auth protection
+- Optional Basic Auth protection (config or env-backed)
+- Safer execution controls (`--dry-run`, destructive guard)
 - Branded index pages
 - `🔗 Copy Link` button next to each page title
 
@@ -134,6 +135,16 @@ CLOUDFLARE_ACCOUNT_ID=...
 node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js run
 ```
 
+### 6) Safety controls
+
+```bash
+# preview actions without mutating files/deploying
+node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js run --dry-run
+
+# allow destructive fallback during setup-project only when intentional
+ALLOW_DESTRUCTIVE=1 node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js setup-project
+```
+
 ---
 
 ## Cloudflare Pages Domain Setup (YOURDOMAIN.COM)
@@ -189,6 +200,9 @@ node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js run
 - Do **not** post API tokens in public channels.
 - Rotate compromised tokens immediately.
 - `.env` should remain uncommitted.
+- Basic auth is intentionally simple and optional.
+- Prefer env-backed auth credentials (`BASIC_AUTH_USERNAME` / `BASIC_AUTH_PASSWORD`) over storing passwords in config.
+- Do **not** publish highly sensitive content unless you fully understand your security model and hardening choices.
 - Use stronger credentials than `YOUR_USER/YOUR_PASS` for production.
 
 ---

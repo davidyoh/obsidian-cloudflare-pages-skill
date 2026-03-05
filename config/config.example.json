@@ -31,7 +31,9 @@
     "basicAuth": {
       "enabled": false,
       "username": "",
-      "password": ""
+      "password": "",
+      "usernameEnv": "BASIC_AUTH_USERNAME",
+      "passwordEnv": "BASIC_AUTH_PASSWORD"
     }
   }
 }

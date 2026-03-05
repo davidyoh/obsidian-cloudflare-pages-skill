@@ -107,6 +107,7 @@ Example prompts:
 
 Best practices:
 - Keep secrets in `.env` (never in chat logs)
+- Prefer env-backed basic auth (`BASIC_AUTH_USERNAME` / `BASIC_AUTH_PASSWORD`)
 - Commit `config.example.json`, not personal `config.json`
 - Use a scoped Cloudflare token (Pages edit, DNS edit only if needed)
 - Start on a test subdomain before production
@@ -126,4 +127,8 @@ node bin/publishmd-cf.js run
 ## Security note
 
 Basic auth in this skill is intentionally simple and optional. Do not publish highly sensitive content unless you fully understand your security model and hardening choices.
+
+Safety switches:
+- `--dry-run` (or `DRY_RUN=1`) to preview actions without mutating/deploying
+- `ALLOW_DESTRUCTIVE=1` only when you intentionally allow fallback setup to clear a non-empty workspace directory
 

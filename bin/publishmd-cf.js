@@ -10,6 +10,9 @@ const root = path.resolve(__dirname, '..');
 const cfgPath = path.join(root, 'config', 'config.json');
 const cfgExample = path.join(root, 'config', 'config.example.json');
 const cmd = process.argv[2] || 'help';
+const args = process.argv.slice(3);
+const DRY_RUN = args.includes('--dry-run') || process.env.DRY_RUN === '1';
+const ALLOW_DESTRUCTIVE = process.env.ALLOW_DESTRUCTIVE === '1';
 
 function loadDotEnv(file) {
   if (!fs.existsSync(file)) return;
@@ -41,8 +44,36 @@ function toTilde(p) {
 }
 
 function sh(command, cwd, quiet = false) {
+  if (DRY_RUN && !quiet) {
+    const redacted = command
+      .replace(/CLOUDFLARE_API_TOKEN="[^"]*"/g, 'CLOUDFLARE_API_TOKEN="***"')
+      .replace(/BASIC_AUTH_PASSWORD="[^"]*"/g, 'BASIC_AUTH_PASSWORD="***"');
+    console.log(`[dry-run] ${redacted}`);
+    return '';
+  }
   if (quiet) return execSync(command, { stdio: ['ignore', 'pipe', 'pipe'], cwd: cwd || process.cwd() }).toString();
   execSync(command, { stdio: 'inherit', cwd: cwd || process.cwd() });
+}
+
+function assertSafePath(targetPath, label = 'path') {
+  const resolved = path.resolve(targetPath);
+  if (resolved === '/' || resolved === os.homedir() || resolved.length < 8) {
+    throw new Error(`Refusing unsafe ${label}: ${resolved}`);
+  }
+  return resolved;
+}
+
+function clearDirectoryContents(dir) {
+  const resolved = assertSafePath(dir, 'directory clear target');
+  if (!fs.existsSync(resolved)) return;
+  for (const entry of fs.readdirSync(resolved)) {
+    const p = path.join(resolved, entry);
+    if (DRY_RUN) {
+      console.log(`[dry-run] remove ${p}`);
+      continue;
+    }
+    fs.rmSync(p, { recursive: true, force: true });
+  }
 }
 
 function loadConfig() {
@@ -228,6 +259,10 @@ function doctor() {
     console.warn(`Warning: ${accountEnv} is not set (some wrangler setups still work without it).`);
   }
 
+  if (cfg.cloudflare?.basicAuth?.enabled && cfg.cloudflare?.basicAuth?.password) {
+    console.warn('Warning: basicAuth.password is stored in config.json. Prefer env-backed credentials for better safety.');
+  }
+
   console.log('Doctor passed ✅');
 }
 
@@ -258,7 +293,7 @@ function sync() {
   if (!cfg.source.includeFolders?.length) throw new Error('includeFolders is empty');
 
   fs.mkdirSync(dest, { recursive: true });
-  sh(`rm -rf "${dest}"/*`);
+  clearDirectoryContents(dest);
 
   for (const folder of cfg.source.includeFolders) {
     const src = path.join(vaultPath, folder);
@@ -321,7 +356,10 @@ function setupProject() {
   if (!bootstrapOk) {
     console.log('Falling back to git clone bootstrap for Quartz...');
     if (fs.readdirSync(workspaceDir).length > 0) {
-      sh(`rm -rf "${workspaceDir}"/*`);
+      if (!ALLOW_DESTRUCTIVE) {
+        throw new Error('Fallback bootstrap requires clearing workspaceDir. Re-run with ALLOW_DESTRUCTIVE=1 or use an empty workspace directory.');
+      }
+      clearDirectoryContents(workspaceDir);
     }
     sh(`git clone https://github.com/jackyzha0/quartz.git "${workspaceDir}"`);
     sh('npm i', workspaceDir);
@@ -445,14 +483,23 @@ function ensureBasicAuthMiddleware(workspaceDir, cfg) {
     return;
   }
 
-  if (!auth.username || !auth.password) {
-    throw new Error('basicAuth is enabled but username/password is missing in config.cloudflare.basicAuth');
+  const usernameEnv = auth?.usernameEnv || 'BASIC_AUTH_USERNAME';
+  const passwordEnv = auth?.passwordEnv || 'BASIC_AUTH_PASSWORD';
+  const username = process.env[usernameEnv] || auth.username;
+  const password = process.env[passwordEnv] || auth.password;
+
+  if (!username || !password) {
+    throw new Error(`basicAuth is enabled but credentials are missing. Set config values or env vars ${usernameEnv}/${passwordEnv}.`);
   }
 
   fs.mkdirSync(fnDir, { recursive: true });
-  const middleware = `const USER = ${JSON.stringify(auth.username)};\nconst PASS = ${JSON.stringify(auth.password)};\n\nfunction unauthorized() {\n  return new Response("Authentication required", {\n    status: 401,\n    headers: {\n      "WWW-Authenticate": 'Basic realm="Private Vault", charset="UTF-8"',\n      "Cache-Control": "no-store",\n    },\n  });\n}\n\nexport async function onRequest(context) {\n  const auth = context.request.headers.get("Authorization") || "";\n  if (!auth.startsWith("Basic ")) return unauthorized();\n\n  try {\n    const decoded = atob(auth.slice(6));\n    const [user, ...rest] = decoded.split(":");\n    const pass = rest.join(":");\n\n    if (user !== USER || pass !== PASS) return unauthorized();\n    return context.next();\n  } catch {\n    return unauthorized();\n  }\n}\n`;
+  const middleware = `const USER = ${JSON.stringify(username)};\nconst PASS = ${JSON.stringify(password)};\n\nfunction unauthorized() {\n  return new Response("Authentication required", {\n    status: 401,\n    headers: {\n      "WWW-Authenticate": 'Basic realm="Private Vault", charset="UTF-8"',\n      "Cache-Control": "no-store",\n    },\n  });\n}\n\nexport async function onRequest(context) {\n  const auth = context.request.headers.get("Authorization") || "";\n  if (!auth.startsWith("Basic ")) return unauthorized();\n\n  try {\n    const decoded = atob(auth.slice(6));\n    const [user, ...rest] = decoded.split(":");\n    const pass = rest.join(":");\n\n    if (user !== USER || pass !== PASS) return unauthorized();\n    return context.next();\n  } catch {\n    return unauthorized();\n  }\n}\n`;
+  if (DRY_RUN) {
+    console.log('[dry-run] write basic auth middleware');
+    return;
+  }
   fs.writeFileSync(middlewarePath, middleware, 'utf8');
-  console.log('Wrote basic auth middleware from config ✅');
+  console.log('Wrote basic auth middleware from config/env ✅');
 }
 
 function deploy() {
@@ -488,14 +535,14 @@ function run() {
 function help() {
   console.log(`
 Usage:
-  publishmd-cf.js init
-  publishmd-cf.js wizard
-  publishmd-cf.js setup-project
-  publishmd-cf.js doctor
-  publishmd-cf.js sync
-  publishmd-cf.js build
-  publishmd-cf.js deploy
-  publishmd-cf.js run
+  publishmd-cf.js <command> [--dry-run]
+
+Commands:
+  init | wizard | setup-project | doctor | sync | build | deploy | run
+
+Safety env flags:
+  ALLOW_DESTRUCTIVE=1   allow fallback setup to clear non-empty workspaceDir
+  DRY_RUN=1             print actions without mutating files/deploying
 `);
 }
 
