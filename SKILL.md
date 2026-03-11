@@ -29,7 +29,7 @@ Automates a safe publishing flow:
 - `node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js doctor`
   - Validates paths + required binaries
 - `node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js sync`
-  - Syncs selected notes/assets into publish content folder
+  - Syncs selected notes/assets into publish content folder (`publish.syncMode`: mirror|append)
 - `node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js build`
   - Runs Quartz build in project dir
 - `node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js deploy`
@@ -136,4 +136,5 @@ Basic auth in this skill is intentionally simple and optional. Do not publish hi
 Safety switches:
 - `--dry-run` (or `DRY_RUN=1`) to preview actions without mutating/deploying
 - `ALLOW_DESTRUCTIVE=1` only when you intentionally allow fallback setup to clear a non-empty workspace directory
+- `SAFE_MODE=1` to block deploy and destructive fallback clear
 

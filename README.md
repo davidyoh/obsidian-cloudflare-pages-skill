@@ -29,7 +29,7 @@ Commands:
 - `wizard` — interactive setup
 - `setup-project` — initialize Quartz workspace if needed
 - `doctor` — dependency/env/path checks
-- `sync` — copy selected vault folders into Quartz content
+- `sync` — copy selected vault folders into Quartz content (`syncMode=mirror|append`)
 - `build` — build static site + post-processing customizations
 - `deploy` — deploy to Cloudflare Pages
 - `run` — full pipeline (`setup-project -> doctor -> sync -> build -> deploy`)
@@ -143,6 +143,9 @@ node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js run --dry-run
 
 # allow destructive fallback during setup-project only when intentional
 ALLOW_DESTRUCTIVE=1 node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js setup-project
+
+# block deploy + destructive fallback clear
+SAFE_MODE=1 node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js run
 ```
 
 ---
@@ -200,6 +203,7 @@ ALLOW_DESTRUCTIVE=1 node skills/obsidian-cloudflare-pages/bin/publishmd-cf.js se
 - Do **not** post API tokens in public channels.
 - Rotate compromised tokens immediately.
 - `.env` should remain uncommitted.
+- `publish.syncMode` controls stale-file behavior: `mirror` (uses rsync delete) vs `append` (no delete).
 - Basic auth is intentionally simple and optional.
 - Prefer env-backed auth credentials (`BASIC_AUTH_USERNAME` / `BASIC_AUTH_PASSWORD`) over storing passwords in config.
 - Do **not** publish highly sensitive content unless you fully understand your security model and hardening choices.

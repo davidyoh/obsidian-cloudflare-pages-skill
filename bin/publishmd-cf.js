@@ -13,6 +13,7 @@ const cmd = process.argv[2] || 'help';
 const args = process.argv.slice(3);
 const DRY_RUN = args.includes('--dry-run') || process.env.DRY_RUN === '1';
 const ALLOW_DESTRUCTIVE = process.env.ALLOW_DESTRUCTIVE === '1';
+const SAFE_MODE = process.env.SAFE_MODE === '1';
 
 function loadDotEnv(file) {
   if (!fs.existsSync(file)) return;
@@ -148,6 +149,7 @@ async function wizard() {
 
   const workspaceDir = await ask('Quartz project directory', defaults?.publish?.workspaceDir || '~/projects/read-k06');
   const contentDir = await ask('Quartz content directory', defaults?.publish?.contentDir || 'content');
+  const syncMode = await ask('Sync mode (mirror|append)', defaults?.publish?.syncMode || 'mirror');
 
   const title = await ask('Site title', defaults?.site?.title || 'Obsidian Vault');
   const baseUrl = await ask('Site base URL', defaults?.site?.baseUrl || 'https://YOURDOMAIN.COM');
@@ -200,7 +202,8 @@ async function wizard() {
     },
     publish: {
       workspaceDir,
-      contentDir
+      contentDir,
+      syncMode: /^(append|mirror)$/i.test(syncMode) ? syncMode.toLowerCase() : 'mirror'
     },
     site: {
       generator: 'quartz',
@@ -263,6 +266,11 @@ function doctor() {
     console.warn('Warning: basicAuth.password is stored in config.json. Prefer env-backed credentials for better safety.');
   }
 
+  const syncMode = (cfg.publish?.syncMode || 'mirror').toLowerCase();
+  if (!['mirror', 'append'].includes(syncMode)) {
+    throw new Error(`Invalid publish.syncMode: ${syncMode} (expected mirror|append)`);
+  }
+
   console.log('Doctor passed ✅');
 }
 
@@ -293,7 +301,7 @@ function sync() {
   if (!cfg.source.includeFolders?.length) throw new Error('includeFolders is empty');
 
   fs.mkdirSync(dest, { recursive: true });
-  clearDirectoryContents(dest);
+  const syncMode = (cfg.publish?.syncMode || 'mirror').toLowerCase();
 
   for (const folder of cfg.source.includeFolders) {
     const src = path.join(vaultPath, folder);
@@ -304,7 +312,8 @@ function sync() {
     const excludes = (cfg.source.excludeFolders || [])
       .map((f) => `--exclude '${f}/'`)
       .join(' ');
-    sh(`rsync -av --exclude '.obsidian/' --exclude '*.canvas' ${excludes} "${src}/" "${dest}/${folder}/"`);
+    const deleteFlag = syncMode === 'mirror' ? '--delete' : '';
+    sh(`rsync -av ${deleteFlag} --exclude '.obsidian/' --exclude '*.canvas' ${excludes} "${src}/" "${dest}/${folder}/"`);
   }
 
   if (cfg.source.requireFrontmatterPublish) {
@@ -356,6 +365,9 @@ function setupProject() {
   if (!bootstrapOk) {
     console.log('Falling back to git clone bootstrap for Quartz...');
     if (fs.readdirSync(workspaceDir).length > 0) {
+      if (SAFE_MODE) {
+        throw new Error('SAFE_MODE=1 blocks fallback workspace clearing. Use an empty workspace directory or disable SAFE_MODE.');
+      }
       if (!ALLOW_DESTRUCTIVE) {
         throw new Error('Fallback bootstrap requires clearing workspaceDir. Re-run with ALLOW_DESTRUCTIVE=1 or use an empty workspace directory.');
       }
@@ -503,6 +515,7 @@ function ensureBasicAuthMiddleware(workspaceDir, cfg) {
 }
 
 function deploy() {
+  if (SAFE_MODE) throw new Error('SAFE_MODE=1 blocks deploy. Unset SAFE_MODE to deploy intentionally.');
   const cfg = loadConfig();
   const workspaceDir = expandHome(cfg.publish.workspaceDir);
   ensureBasicAuthMiddleware(workspaceDir, cfg);
@@ -543,6 +556,7 @@ Commands:
 Safety env flags:
   ALLOW_DESTRUCTIVE=1   allow fallback setup to clear non-empty workspaceDir
   DRY_RUN=1             print actions without mutating files/deploying
+  SAFE_MODE=1           block deploy + destructive fallback clear
 `);
 }
 
