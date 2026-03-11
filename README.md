@@ -4,6 +4,39 @@
 
 **Current version:** `1.0.3`
 
+## Updated
+
+### v1.0.3
+**What changed**
+- Added `SAFE_MODE=1`
+- Added `publish.syncMode` with `mirror|append`
+- Replaced more destructive sync behavior with safer mirror/append semantics
+- Improved safety docs and audit-facing guidance
+
+**Why**
+- Security audits flagged the skill for destructive-looking behavior
+- This release makes intent clearer and gives operators safer control over deploy/sync behavior
+- `SAFE_MODE` makes it easier to inspect or test without accidental external actions
+
+### v1.0.2
+**What changed**
+- Republished/verified the packaged skill on ClawHub
+
+**Why**
+- To confirm packaging and distribution were working correctly after the initial release
+
+### v1.0.1
+**What changed**
+- Added hardening improvements
+- Expanded docs (`README.md`, `SKILL.md`)
+- Improved banner/readme presentation
+- Added env-backed auth guidance and safer execution controls
+
+**Why**
+- To make the skill safer to share publicly
+- To reduce confusion for first-time users
+- To prepare the project for GitHub + ClawHub distribution
+
 ## Overview
 
 This OpenClaw Skill automates publishing selected Obsidian notes (or any Markdown folder) to a static website on Cloudflare Pages.
