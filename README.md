@@ -2,6 +2,8 @@
 
 ![OpenClaw Skill banner](assets/github-banner-v2.svg)
 
+**Current version:** `1.0.3`
+
 ## Overview
 
 This OpenClaw Skill automates publishing selected Obsidian notes (or any Markdown folder) to a static website on Cloudflare Pages.
